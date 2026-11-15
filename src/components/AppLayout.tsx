@@ -9,14 +9,21 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconLogout, IconTargetArrow } from '@tabler/icons-react';
+import { IconBuildingStore, IconLogout, IconPackages, IconTargetArrow } from '@tabler/icons-react';
 import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 
 import { useEvents, useLogout, useMe, useVersion } from '../api/queries';
 import { PROJECT_NAME } from '../project';
+import { ADMIN_ROLE } from './AdminOnly';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
 
 const navigation = [{ to: '/', label: 'Challenges', icon: IconTargetArrow }] as const;
+
+/** Administration, shown to admins only. */
+const adminNavigation = [
+  { to: '/admin/marketplace', label: 'Marketplace', icon: IconBuildingStore },
+  { to: '/admin/catalogs', label: 'Catalog sources', icon: IconPackages },
+] as const;
 
 /** The frame of every page: header, navigation and content. Signed-out users only see the login page. */
 export function AppLayout() {
@@ -86,6 +93,23 @@ export function AppLayout() {
               active={pathname === to || pathname.startsWith('/challenges/')}
             />
           ))}
+          {me.data?.role === ADMIN_ROLE && (
+            <>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="md" mb={4} px="sm">
+                Administration
+              </Text>
+              {adminNavigation.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  component={Link}
+                  to={to}
+                  label={label}
+                  leftSection={<Icon size={18} stroke={1.5} />}
+                  active={pathname === to}
+                />
+              ))}
+            </>
+          )}
         </AppShell.Section>
         <AppShell.Section>
           <Text size="xs" c="dimmed">

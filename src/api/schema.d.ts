@@ -4,6 +4,100 @@
  */
 
 export interface paths {
+    "/api/v1/admin/catalogs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalog sources and their last sync. */
+        get: operations["list_catalogs"];
+        put?: never;
+        /** Adds a catalog source. The operator syncs and verifies it. */
+        post: operations["add_catalog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/catalogs/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes a catalog source, the challenges installed from it and their
+         *     running instances (D43).
+         */
+        delete: operations["remove_catalog"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/challenges": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Installed challenges, whatever their source. */
+        get: operations["list_installed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/challenges/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Installs a challenge from a catalog source, or moves it to another
+         *     version. The operator verifies the package against the trust policy of
+         *     the source and its permissions against the platform policy.
+         */
+        put: operations["install"];
+        post?: never;
+        /** Removes a challenge and stops its running instances (D43). Scores stay. */
+        delete: operations["remove_challenge"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/marketplace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Packages listed by every catalog source, with what is installed. */
+        get: operations["marketplace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -201,6 +295,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description A catalog source and its last sync. */
+        CatalogView: {
+            /** @description RFC 3339 time of the last successful sync. */
+            lastSync?: string | null;
+            /** @description Why the source is not ready, or what the last sync found. */
+            message?: string | null;
+            name: string;
+            /** @description Packages listed by the last verified index. */
+            packages: number;
+            /** @description The last sync verified the index. */
+            ready: boolean;
+            /** @description OCI reference of the catalog index. */
+            ref: string;
+            /** @description Who signed the index. */
+            signer?: string | null;
+            trust: components["schemas"]["TrustView"];
+        };
         /** @description A challenge with its instructions and tasks. */
         ChallengeDetail: components["schemas"]["ChallengeSummary"] & {
             /** @description Student instructions, in markdown. */
@@ -275,6 +386,38 @@ export interface components {
             /** @enum {string} */
             type: "check";
         };
+        /** @description Installs or updates a challenge from a catalog source. */
+        InstallRequest: {
+            /** @description Catalog source listing the package. */
+            source: string;
+            /** @description Version to install. */
+            version: string;
+        };
+        /** @description An installed challenge, as the operator reports it. */
+        InstalledView: {
+            /** @description Instances that removing the challenge would stop. */
+            activeInstances: number;
+            /** @description Catalog source, for catalog installs. */
+            catalog?: string | null;
+            /** @description What the operator says about the installation. */
+            message?: string | null;
+            /** @description The package and its images are in the in-cluster registry mirror. */
+            mirrored: boolean;
+            name: string;
+            permissions?: components["schemas"]["PermissionsView"] | null;
+            /** @description Installed and verified. */
+            ready: boolean;
+            /** @description Version asked for, for catalog installs (may not be installed yet). */
+            requestedVersion?: string | null;
+            runnable: boolean;
+            /** @description Who signed the package. */
+            signer?: string | null;
+            /** @description Where it comes from: catalog, oci or inline (development). */
+            sourceKind: string;
+            title?: string | null;
+            unrunnableReason?: string | null;
+            version?: string | null;
+        };
         /**
          * @description Lifecycle phase of an instance.
          * @enum {string}
@@ -292,9 +435,30 @@ export interface components {
             phase: components["schemas"]["InstancePhase"];
             terminals: components["schemas"]["TerminalView"][];
         };
+        /** @description A Sigstore keyless identity. */
+        KeylessView: {
+            issuer: string;
+            subjectRegExp: string;
+        };
         LoginRequest: {
             password: string;
             username: string;
+        };
+        /** @description A package offered by a catalog source. */
+        MarketplaceEntry: {
+            category: string;
+            difficulty: string;
+            installed?: components["schemas"]["InstalledView"] | null;
+            name: string;
+            /** @description Catalog source listing it. */
+            source: string;
+            summary?: string | null;
+            tags: string[];
+            title: string;
+            /** @description A newer version than the installed one is listed by this source. */
+            updateAvailable: boolean;
+            /** @description Versions, newest first. */
+            versions: components["schemas"]["PackageVersionView"][];
         };
         /** @description The signed-in user. */
         Me: {
@@ -310,9 +474,38 @@ export interface components {
             score: number;
             username: string;
         };
+        /** @description A new catalog source. */
+        NewCatalog: {
+            /** @description Name of the source (a DNS label). */
+            name: string;
+            /** @description OCI reference of the catalog index, e.g. "ghcr.io/school/catalog:latest". */
+            ref: string;
+            trust: components["schemas"]["TrustView"];
+        };
         OpenTerminal: {
             /** @description Machine of one of the challenge's terminals. */
             machine: string;
+        };
+        /** @description A published version of a package. */
+        PackageVersionView: {
+            permissions?: components["schemas"]["PermissionsView"] | null;
+            version: string;
+        };
+        /** @description What a package needs from the cluster, derived from it (D41). */
+        PermissionsView: {
+            /** @description Custom checker image, with access to the machines. */
+            checkerImage?: string | null;
+            /** @description CPU of the machines of one instance, e.g. "1500m". */
+            cpu: string;
+            /** @description Outbound network access: none, allowlist or internet. */
+            egress: string;
+            egressAllowlist?: string[];
+            /** @description Kinds created by extra manifests in the instance namespace. */
+            extraManifestKinds?: string[];
+            /** @description Memory of the machines of one instance, e.g. "1536Mi". */
+            memory: string;
+            /** @description Runtimes of its machines (pod, vm...). */
+            runtimes: string[];
         };
         StartInstance: {
             /** @description Name of the challenge. */
@@ -342,6 +535,15 @@ export interface components {
             label: string;
             machine: string;
         };
+        /** @description Who a catalog source trusts (D40). */
+        TrustView: {
+            /** @description Accepts unsigned packages. For local development only. */
+            allowUnsigned?: boolean;
+            /** @description Sigstore keyless identities, e.g. a CI workflow. */
+            keyless?: components["schemas"]["KeylessView"][];
+            /** @description PEM public keys (cosign or `opslab challenge sign --key`). */
+            keys?: string[];
+        };
         /** @description Version of the running api. */
         VersionInfo: {
             /** @description Project name. */
@@ -358,6 +560,248 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_catalogs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogView"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    add_catalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewCatalog"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CatalogView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_catalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Catalog source name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_installed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledView"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    install: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Package name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InstallRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstalledView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_challenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Challenge name */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    marketplace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MarketplaceEntry"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;

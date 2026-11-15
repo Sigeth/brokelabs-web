@@ -254,3 +254,129 @@ export function useEvents(enabled: boolean) {
     return () => source.close();
   }, [enabled, client]);
 }
+
+// Marketplace (admins only). The operator installs, syncs and mirrors
+// asynchronously, so these refresh while a page shows them.
+
+export type CatalogSourceView = components['schemas']['CatalogView'];
+export type NewCatalog = components['schemas']['NewCatalog'];
+export type MarketplaceEntry = components['schemas']['MarketplaceEntry'];
+export type Installed = components['schemas']['InstalledView'];
+export type Permissions = components['schemas']['PermissionsView'];
+
+const adminKeys = {
+  catalogs: ['admin', 'catalogs'],
+  marketplace: ['admin', 'marketplace'],
+  installed: ['admin', 'installed'],
+};
+
+/** How often admin pages refresh what the operator reports. */
+const ADMIN_REFRESH_MS = 5000;
+
+export function useCatalogSources() {
+  return useQuery({
+    queryKey: adminKeys.catalogs,
+    refetchInterval: ADMIN_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/admin/catalogs');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+export function useMarketplace() {
+  return useQuery({
+    queryKey: adminKeys.marketplace,
+    refetchInterval: ADMIN_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/admin/marketplace');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** Installed challenges, whatever their source. */
+export function useInstalled() {
+  return useQuery({
+    queryKey: adminKeys.installed,
+    refetchInterval: ADMIN_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/admin/challenges');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** Refreshes everything a marketplace change affects, the student catalog included. */
+function useInvalidateMarketplace() {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: ['admin'] });
+    void client.invalidateQueries({ queryKey: keys.challenges });
+  };
+}
+
+export function useAddCatalogSource() {
+  const invalidate = useInvalidateMarketplace();
+  return useMutation({
+    mutationFn: async (body: NewCatalog) => {
+      const { data, error, response } = await api.POST('/api/v1/admin/catalogs', { body });
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoveCatalogSource() {
+  const invalidate = useInvalidateMarketplace();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { error, response } = await api.DELETE('/api/v1/admin/catalogs/{name}', {
+        params: { path: { name } },
+      });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Installs a challenge from a catalog source, or moves it to another version. */
+export function useInstallChallenge() {
+  const invalidate = useInvalidateMarketplace();
+  return useMutation({
+    mutationFn: async ({
+      name,
+      source,
+      version,
+    }: {
+      name: string;
+      source: string;
+      version: string;
+    }) => {
+      const { data, error, response } = await api.PUT('/api/v1/admin/challenges/{name}', {
+        params: { path: { name } },
+        body: { source, version },
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Removes a challenge, stopping its running instances. */
+export function useRemoveChallenge() {
+  const invalidate = useInvalidateMarketplace();
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { error, response } = await api.DELETE('/api/v1/admin/challenges/{name}', {
+        params: { path: { name } },
+      });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
