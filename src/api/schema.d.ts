@@ -299,6 +299,11 @@ export interface components {
         CatalogView: {
             /** @description RFC 3339 time of the last successful sync. */
             lastSync?: string | null;
+            /**
+             * @description Installed by the Helm chart (the official catalog): removing it here
+             *     lasts until the next upgrade, unless the chart values disable it.
+             */
+            managedByChart: boolean;
             /** @description Why the source is not ready, or what the last sync found. */
             message?: string | null;
             name: string;

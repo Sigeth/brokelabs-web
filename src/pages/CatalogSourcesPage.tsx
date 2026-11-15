@@ -123,6 +123,12 @@ function RemoveSourceModal({
           </List>
         </>
       )}
+      {source.managedByChart && (
+        <Alert color="yellow">
+          This source is installed by the Helm chart: it comes back at the next upgrade. To remove
+          it for good, set <Code>catalogs.{source.name}.enabled: false</Code> in the chart values.
+        </Alert>
+      )}
       {running > 0 && (
         <Text size="sm" fw={600}>
           {running === 1 ? '1 running instance stops' : `${running} running instances stop`}, and

@@ -62,6 +62,7 @@ const source = {
   signer: 'ci (https://token.actions.githubusercontent.com)',
   lastSync: '2026-11-15T10:00:00Z',
   packages: 1,
+  managedByChart: true,
 };
 
 const base = {
@@ -152,6 +153,7 @@ describe('catalog sources', () => {
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('SSH hardening')).toBeInTheDocument();
     expect(within(dialog).getByText(/2 running instances stop/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/comes back at the next upgrade/)).toBeInTheDocument();
   });
 });
 
