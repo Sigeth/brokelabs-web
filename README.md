@@ -1,6 +1,6 @@
-# opslab-web
+# brokelabs-web
 
-Web UI of opslab (working name). It's a React + Vite single-page app built with the [Mantine](https://mantine.dev) component library. The [api](https://github.com/Sigeth/opslab-api) serves the built files in production.
+Web UI of BrokeLabs. It's a React + Vite single-page app built with the [Mantine](https://mantine.dev) component library. The [api](https://github.com/Sigeth/brokelabs-api) serves the built files in production.
 
 > Status: M1. Login (solo mode), challenge catalog, and a challenge page with the instructions, the tasks, the environment (start, countdown, stop), browser terminals and a _Check my work_ button. Live updates come from the api's server-sent events.
 

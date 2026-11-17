@@ -13,7 +13,7 @@ import { IconBuildingStore, IconLogout, IconPackages, IconTargetArrow } from '@t
 import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 
 import { useEvents, useLogout, useMe, useVersion } from '../api/queries';
-import { PROJECT_NAME } from '../project';
+import { PROJECT_TITLE } from '../project';
 import { ADMIN_ROLE } from './AdminOnly';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
 
@@ -58,7 +58,7 @@ export function AppLayout() {
     >
       <AppShell.Header>
         <Group h="100%" px="md" justify="space-between">
-          <Title order={3}>{PROJECT_NAME}</Title>
+          <Title order={3}>{PROJECT_TITLE}</Title>
           <Group gap="sm">
             {me.data && (
               <>

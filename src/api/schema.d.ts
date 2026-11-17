@@ -546,7 +546,7 @@ export interface components {
             allowUnsigned?: boolean;
             /** @description Sigstore keyless identities, e.g. a CI workflow. */
             keyless?: components["schemas"]["KeylessView"][];
-            /** @description PEM public keys (cosign or `opslab challenge sign --key`). */
+            /** @description PEM public keys (cosign or `brokelabs challenge sign --key`). */
             keys?: string[];
         };
         /** @description Version of the running api. */

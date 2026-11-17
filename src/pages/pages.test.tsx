@@ -24,7 +24,9 @@ describe('signed out', () => {
       'GET /api/v1/challenges': [200, [summary]],
     });
     renderApp('/');
-    expect(await screen.findByRole('heading', { name: 'Sign in to opslab' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Sign in to BrokeLabs' }),
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Username/), { target: { value: 'admin' } });
     fireEvent.change(screen.getByLabelText(/Password/), { target: { value: 'pw' } });
@@ -72,7 +74,7 @@ describe('catalog', () => {
     expect(screen.getAllByText('1/3 tasks')).toHaveLength(2);
     expect(screen.getByText('15 pts')).toBeInTheDocument();
     expect(screen.getByText('Not runnable here: needs KVM')).toBeInTheDocument();
-    expect(screen.getByText('opslab 0.1.0')).toBeInTheDocument();
+    expect(screen.getByText('brokelabs 0.1.0')).toBeInTheDocument();
   });
 });
 

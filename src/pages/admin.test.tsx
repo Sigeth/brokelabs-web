@@ -51,7 +51,7 @@ const installed = {
 
 const source = {
   name: 'official',
-  ref: 'ghcr.io/sigeth/opslab-catalog:latest',
+  ref: 'ghcr.io/sigeth/brokelabs-catalog:latest',
   trust: {
     keys: [],
     keyless: [{ issuer: 'https://token.actions.githubusercontent.com', subjectRegExp: '^ci$' }],

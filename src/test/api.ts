@@ -24,7 +24,7 @@ export function mockApi(routes: Record<string, Handler | [number, unknown]>) {
 }
 
 export const me = { id: 'u1', username: 'admin', displayName: 'admin', role: 'admin', score: 15 };
-export const version = { name: 'opslab', version: '0.1.0' };
+export const version = { name: 'brokelabs', version: '0.1.0' };
 
 export const summary = {
   name: 'leaky-home',

@@ -4,7 +4,7 @@ API_VERSION := $(shell cat API_VERSION)
 LICENSES_ALLOWED := MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;0BSD;Unlicense
 # OpenAPI document of the api: the pinned api tag, or a local file
 # (OPENAPI_FILE=../api/openapi.json make generate).
-OPENAPI_FILE ?= https://raw.githubusercontent.com/Sigeth/opslab-api/$(API_VERSION)/openapi.json
+OPENAPI_FILE ?= https://raw.githubusercontent.com/Sigeth/brokelabs-api/$(API_VERSION)/openapi.json
 
 .PHONY: all install dev lint test build licenses generate verify-generated
 

@@ -4,7 +4,7 @@ import { type FormEvent, useState } from 'react';
 
 import { useLogin, useMe } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
-import { PROJECT_NAME } from '../project';
+import { PROJECT_TITLE } from '../project';
 
 export function LoginPage() {
   const me = useMe();
@@ -28,7 +28,7 @@ export function LoginPage() {
   return (
     <Center>
       <Card withBorder w={380} padding="xl">
-        <PageHeader title={`Sign in to ${PROJECT_NAME}`} />
+        <PageHeader title={`Sign in to ${PROJECT_TITLE}`} />
         <form onSubmit={submit}>
           <Stack>
             <TextInput

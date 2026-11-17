@@ -1,5 +1,5 @@
 # The built UI in /dist. The Helm chart copies it into the api pod with an
-# init container (cp), and the api serves it (OPSLAB_WEB_DIR).
+# init container (cp), and the api serves it (BROKELABS_WEB_DIR).
 FROM docker.io/library/node:24 AS build
 WORKDIR /src
 COPY package.json package-lock.json ./
