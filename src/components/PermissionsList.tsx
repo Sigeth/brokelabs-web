@@ -5,7 +5,7 @@ import type { Permissions } from '../api/queries';
 
 const runtimeLabels: Record<string, string> = {
   pod: 'Container (pod)',
-  sysbox: 'System container (sysbox)',
+  userns: 'Root container (user namespace)',
   vcluster: 'Virtual Kubernetes cluster',
   vm: 'Virtual machine',
 };
