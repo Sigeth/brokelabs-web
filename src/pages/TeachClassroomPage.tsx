@@ -8,6 +8,7 @@ import {
   Skeleton,
   Stack,
   Table,
+  Tabs,
   Text,
   Title,
 } from '@mantine/core';
@@ -29,6 +30,7 @@ import { ClassroomModal } from '../components/ClassroomModal';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { InviteCard } from '../components/InviteCard';
 import { PageHeader } from '../components/PageHeader';
+import { ProgressGrid } from '../components/ProgressGrid';
 import { TeacherOnly } from '../components/TeacherOnly';
 import { formatDateTime, isPast } from '../dates';
 
@@ -147,7 +149,7 @@ function Members({ detail }: { detail: ClassroomDetail }) {
   return (
     <Card withBorder padding="lg">
       <Stack gap="sm">
-        <Text fw={600}>Members ({detail.members.length})</Text>
+        <Text fw={600}>Members</Text>
         {detail.members.length === 0 ? (
           <Text size="sm" c="dimmed">
             Nobody yet: share the invite link.
@@ -250,8 +252,24 @@ export function TeachClassroomPage() {
             </Group>
           </Group>
           <InviteCard classroom={detail.data.classroom} />
-          <Assignments detail={detail.data} />
-          <Members detail={detail.data} />
+          <Tabs defaultValue="progress" keepMounted={false}>
+            <Tabs.List mb="md">
+              <Tabs.Tab value="progress">Progress</Tabs.Tab>
+              <Tabs.Tab value="assignments">
+                Assignments ({detail.data.assignments.length})
+              </Tabs.Tab>
+              <Tabs.Tab value="members">Members ({detail.data.members.length})</Tabs.Tab>
+            </Tabs.List>
+            <Tabs.Panel value="progress">
+              <ProgressGrid classroomId={id} />
+            </Tabs.Panel>
+            <Tabs.Panel value="assignments">
+              <Assignments detail={detail.data} />
+            </Tabs.Panel>
+            <Tabs.Panel value="members">
+              <Members detail={detail.data} />
+            </Tabs.Panel>
+          </Tabs>
           {editing && (
             <ClassroomModal classroom={detail.data.classroom} onClose={() => setEditing(false)} />
           )}

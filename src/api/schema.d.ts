@@ -567,6 +567,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/teach/classrooms/{id}/members/{user}/instances/{instance}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stops a student's instance: everything in it is lost, the score is kept. */
+        delete: operations["stop_instance"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/members/{user}/instances/{instance}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resets a student's instance: stops it and starts a fresh one of the same
+         *     challenge for them. The score is kept.
+         */
+        post: operations["reset_instance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Progress of the classroom's students on its assignments, with their
+         *     running instances.
+         */
+        get: operations["progress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/progress.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The progress as a CSV file (one row per student). */
+        get: operations["progress_csv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -703,6 +777,12 @@ export interface components {
             assignments: components["schemas"]["AssignmentView"][];
             classroom: components["schemas"]["ClassroomView"];
             members: components["schemas"]["MemberView"][];
+        };
+        /** @description Progress of a classroom's students on its assignments. */
+        ClassroomProgress: {
+            assignments: components["schemas"]["ProgressAssignment"][];
+            classroom: string;
+            students: components["schemas"]["StudentProgress"][];
         };
         /** @description A classroom, as its teacher sees it. */
         ClassroomView: {
@@ -915,6 +995,40 @@ export interface components {
             /** @description Runtimes of its machines (pod, vm...). */
             runtimes: string[];
         };
+        /** @description An assignment, as a column of the dashboard. */
+        ProgressAssignment: {
+            challenge: string;
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** Format: date-time */
+            opensAt?: string | null;
+            /** Format: int64 */
+            points: number;
+            tasks: number;
+            /** @description None when the challenge is no longer installed. */
+            title?: string | null;
+        };
+        /** @description Where a student stands on one assignment. */
+        ProgressCell: {
+            challenge: string;
+            /** @description Every task is solved. */
+            done: boolean;
+            /** Format: date-time */
+            lastSolvedAt?: string | null;
+            /** @description A task was solved after the deadline (D58). */
+            late: boolean;
+            /** Format: int64 */
+            solvedPoints: number;
+            solvedTasks: number;
+        };
+        /** @description A running instance of a student. */
+        RunningInstance: {
+            challenge: string;
+            id: string;
+            phase: components["schemas"]["InstancePhase"];
+            /** Format: date-time */
+            startedAt: string;
+        };
         /** @description How the platform is set up. */
         Settings: {
             mode: components["schemas"]["Mode"];
@@ -961,6 +1075,25 @@ export interface components {
             id: string;
             name: string;
             teacher: string;
+        };
+        /** @description A row of the dashboard. */
+        StudentProgress: {
+            /** @description One per assignment, in the order of `assignments`. */
+            cells: components["schemas"]["ProgressCell"][];
+            displayName: string;
+            email?: string | null;
+            /** Format: uuid */
+            id: string;
+            /** @description Instances running now, whatever their challenge. */
+            instances: components["schemas"]["RunningInstance"][];
+            /** Format: date-time */
+            lastLoginAt?: string | null;
+            /**
+             * Format: int64
+             * @description Points on this classroom's assignments.
+             */
+            points: number;
+            username: string;
         };
         /** @description Result of checking one task. */
         TaskResultView: {
@@ -2399,6 +2532,141 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    stop_instance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+                /** @description User ID */
+                user: string;
+                /** @description Instance ID */
+                instance: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    reset_instance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+                /** @description User ID */
+                user: string;
+                /** @description Instance ID */
+                instance: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstanceView"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomProgress"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    progress_csv: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": unknown;
+                };
             };
             404: {
                 headers: {

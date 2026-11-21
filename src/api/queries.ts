@@ -704,3 +704,60 @@ export function useDeleteAssignment(id: string) {
     onSuccess: invalidate,
   });
 }
+
+// Teacher dashboard.
+
+export type ClassroomProgress = components['schemas']['ClassroomProgress'];
+export type StudentProgress = components['schemas']['StudentProgress'];
+export type ProgressCell = components['schemas']['ProgressCell'];
+export type RunningInstance = components['schemas']['RunningInstance'];
+
+/** Progress of a classroom's students, refreshed while the page is open. */
+export function useProgress(id: string) {
+  return useQuery({
+    queryKey: ['teach', 'progress', id],
+    refetchInterval: CLASSROOM_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/teach/classrooms/{id}/progress', {
+        params: { path: { id } },
+      });
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** URL of the progress as a CSV file (a download link). */
+export function progressCsvUrl(id: string): string {
+  return `/api/v1/teach/classrooms/${encodeURIComponent(id)}/progress.csv`;
+}
+
+/** Stops a student's instance and starts a fresh one of the same challenge. */
+export function useResetInstance(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async ({ user, instance }: { user: string; instance: string }) => {
+      const { data, error, response } = await api.POST(
+        '/api/v1/teach/classrooms/{id}/members/{user}/instances/{instance}/reset',
+        { params: { path: { id, user, instance } } },
+      );
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useStopStudentInstance(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async ({ user, instance }: { user: string; instance: string }) => {
+      const { error, response } = await api.DELETE(
+        '/api/v1/teach/classrooms/{id}/members/{user}/instances/{instance}',
+        { params: { path: { id, user, instance } } },
+      );
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}

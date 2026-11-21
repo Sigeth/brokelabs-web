@@ -114,7 +114,88 @@ describe('invite links', () => {
   });
 });
 
+const progress = {
+  classroom: 'Class 1A',
+  assignments: [
+    {
+      challenge: 'leaky-home',
+      title: 'Leaky home',
+      tasks: 2,
+      points: 30,
+      opensAt: null,
+      dueAt: '2026-01-01T00:00:00Z',
+    },
+    { challenge: 'ssh', title: 'SSH', tasks: 3, points: 30, opensAt: null, dueAt: null },
+  ],
+  students: [
+    {
+      id: 'u3',
+      username: 'sam',
+      displayName: 'Sam',
+      email: null,
+      lastLoginAt: null,
+      points: 40,
+      cells: [
+        {
+          challenge: 'leaky-home',
+          solvedTasks: 2,
+          solvedPoints: 30,
+          done: true,
+          late: true,
+          lastSolvedAt: null,
+        },
+        {
+          challenge: 'ssh',
+          solvedTasks: 1,
+          solvedPoints: 10,
+          done: false,
+          late: false,
+          lastSolvedAt: null,
+        },
+      ],
+      instances: [
+        { id: 'ssh-1234', challenge: 'ssh', phase: 'Ready', startedAt: '2026-11-21T10:00:00Z' },
+      ],
+    },
+  ],
+};
+
 describe('teaching', () => {
+  it('shows the progress grid, exports it and resets an instance', async () => {
+    const requests = mockApi({
+      ...signedOut,
+      'GET /api/v1/me': [200, me],
+      'GET /api/v1/teach/classrooms/c1': [200, { classroom, members: [], assignments: [] }],
+      'GET /api/v1/teach/classrooms/c1/progress': [200, progress],
+      'POST /api/v1/teach/classrooms/c1/members/u3/instances/ssh-1234/reset': [
+        201,
+        {
+          id: 'ssh-5678',
+          challenge: 'ssh',
+          phase: 'Queued',
+          message: null,
+          expiresAt: null,
+          terminals: [],
+        },
+      ],
+    });
+    renderApp('/teach/c1');
+    expect(await screen.findByText('Done')).toBeInTheDocument();
+    expect(screen.getByText('Late')).toBeInTheDocument();
+    expect(screen.getByText('1/3')).toBeInTheDocument();
+    expect(screen.getByText('40/60')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Export CSV/ })).toHaveAttribute(
+      'href',
+      '/api/v1/teach/classrooms/c1/progress.csv',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Instance of sam' }));
+    fireEvent.click(await screen.findByText('Reset'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Reset' }));
+    await waitFor(() =>
+      expect(requests.some((r) => r.method === 'POST' && r.url.endsWith('/reset'))).toBe(true),
+    );
+  });
+
   it('shows the invite link and turns it off', async () => {
     const requests = mockApi({
       ...signedOut,
@@ -138,11 +219,14 @@ describe('teaching', () => {
         },
       ],
       'PATCH /api/v1/teach/classrooms/c1': [200, { ...classroom, inviteEnabled: false }],
+      'GET /api/v1/teach/classrooms/c1/progress': [200, progress],
     });
     renderApp('/teach/c1');
     expect(await screen.findByText(/\/join\/ABCD-EFGH$/)).toBeInTheDocument();
-    expect(screen.getByText('Leaky home')).toBeInTheDocument();
-    expect(screen.getByText('Sam')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Assignments/ }));
+    expect(await screen.findByText('Leaky home')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Members/ }));
+    expect(await screen.findByText('Sam')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch'));
     await waitFor(() => expect(requests.some((r) => r.method === 'PATCH')).toBe(true));
     const patch = requests.find((r) => r.method === 'PATCH');
