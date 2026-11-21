@@ -87,3 +87,27 @@ describe('account', () => {
     await waitFor(() => expect(requests.some((r) => r.method === 'POST')).toBe(true));
   });
 });
+
+describe('single sign-on', () => {
+  it('offers the provider on the login page and shows its errors', async () => {
+    mockApi({
+      'GET /api/v1/version': [200, version],
+      'GET /api/v1/me': [401, { error: 'sign in first' }],
+      'GET /api/v1/settings': [
+        200,
+        { mode: 'organization', sso: { label: 'School SSO', rolesFromProvider: true } },
+      ],
+    });
+    renderApp('/login?error=The%20sign-in%20expired');
+    const button = await screen.findByRole('link', { name: 'Sign in with School SSO' });
+    expect(button).toHaveAttribute('href', '/api/v1/auth/oidc/login');
+    expect(screen.getByText('The sign-in expired')).toBeInTheDocument();
+  });
+
+  it('hides the password of SSO accounts', async () => {
+    mockApi({ ...base, 'GET /api/v1/me': [200, { ...me, sso: true }] });
+    renderApp('/account');
+    expect(await screen.findByText(/You sign in with single sign-on/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Current password/)).not.toBeInTheDocument();
+  });
+});

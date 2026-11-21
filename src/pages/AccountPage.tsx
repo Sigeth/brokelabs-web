@@ -85,7 +85,14 @@ export function AccountPage() {
         <Text fw={600} mb="md">
           Password
         </Text>
-        <ChangePasswordForm />
+        {me.data?.sso ? (
+          <Text size="sm">
+            You sign in with single sign-on: change your password with your organization&apos;s
+            provider.
+          </Text>
+        ) : (
+          <ChangePasswordForm />
+        )}
       </Card>
     </Stack>
   );

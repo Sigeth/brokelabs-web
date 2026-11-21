@@ -1,7 +1,7 @@
 import { Alert, Button, Group, Modal, Select, Stack, Switch, TextInput } from '@mantine/core';
 import { type FormEvent, useState } from 'react';
 
-import { type UserView, useUpdateUser } from '../api/queries';
+import { type UserView, useSettings, useUpdateUser } from '../api/queries';
 import { ROLE_OPTIONS } from '../roles';
 
 /** Changes a user's display name, role and state. */
@@ -16,6 +16,9 @@ export function EditUserModal({
   onClose: () => void;
 }) {
   const update = useUpdateUser();
+  const sso = useSettings().data?.sso;
+  // The provider's groups set this user's role at every sign-in.
+  const providerRole = user.sso && !!sso?.rolesFromProvider;
   const [displayName, setDisplayName] = useState(user.displayName);
   const [role, setRole] = useState(user.role);
   const [disabled, setDisabled] = useState(user.disabled);
@@ -44,7 +47,10 @@ export function EditUserModal({
             value={role}
             onChange={(v) => setRole(v ?? user.role)}
             allowDeselect={false}
-            disabled={self}
+            disabled={self || providerRole}
+            description={
+              providerRole ? `Set by the groups of ${sso?.label} at each sign-in` : undefined
+            }
           />
           <Switch
             label="Disabled"

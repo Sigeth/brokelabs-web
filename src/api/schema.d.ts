@@ -188,6 +188,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/oidc/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Where the provider sends the browser back: signs the user in, creating
+         *     their account at the first sign-in.
+         */
+        get: operations["oidc_callback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/oidc/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Starts a single sign-on: redirects the browser to the provider. */
+        get: operations["oidc_login"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/challenges": {
         parameters: {
             query?: never;
@@ -585,6 +622,8 @@ export interface components {
              * @description Points of every solved task.
              */
             score: number;
+            /** @description Signs in with single sign-on (no local password). */
+            sso: boolean;
             username: string;
         };
         /**
@@ -632,6 +671,17 @@ export interface components {
         /** @description How the platform is set up. */
         Settings: {
             mode: components["schemas"]["Mode"];
+            sso?: components["schemas"]["SsoSettings"] | null;
+        };
+        /** @description The single sign-on provider. */
+        SsoSettings: {
+            /** @description Text of the sign-in button. */
+            label: string;
+            /**
+             * @description The provider's groups decide roles at every sign-in, so role changes
+             *     made here are overwritten.
+             */
+            rolesFromProvider: boolean;
         };
         StartInstance: {
             /** @description Name of the challenge. */
@@ -683,6 +733,8 @@ export interface components {
             createdAt: string;
             disabled: boolean;
             displayName: string;
+            /** @description From the sign-on provider. */
+            email?: string | null;
             /** Format: uuid */
             id: string;
             /** Format: date-time */
@@ -694,6 +746,8 @@ export interface components {
              * @description Points of every solved task.
              */
             score: number;
+            /** @description Signs in with single sign-on (no local password). */
+            sso: boolean;
             username: string;
         };
         /** @description Version of the running api. */
@@ -1201,6 +1255,64 @@ export interface operations {
         requestBody?: never;
         responses: {
             204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oidc_callback: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                /** @description Set by the provider when the sign-in failed or was refused. */
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Signed in: a page continuing to the next path */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Back to the login page with an error */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    oidc_login: {
+        parameters: {
+            query?: {
+                /** @description Local path to open after signing in (default `/`). */
+                next?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Redirect to the provider */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Single sign-on is not configured */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -94,6 +94,7 @@ function UserRow({
         </Text>
         <Text size="xs" c="dimmed">
           {user.username}
+          {user.email && ` · ${user.email}`}
         </Text>
       </Table.Td>
       <Table.Td>
@@ -101,6 +102,11 @@ function UserRow({
           <Badge variant="light" color={user.role === 'student' ? 'gray' : undefined}>
             {ROLE_LABELS[user.role] ?? user.role}
           </Badge>
+          {user.sso && (
+            <Badge variant="outline" color="gray">
+              SSO
+            </Badge>
+          )}
           {user.disabled && (
             <Badge variant="light" color="red">
               Disabled
@@ -127,9 +133,11 @@ function UserRow({
             <Menu.Item leftSection={<IconPencil size={14} />} onClick={() => onAction('edit')}>
               Edit
             </Menu.Item>
-            <Menu.Item leftSection={<IconKey size={14} />} onClick={() => onAction('reset')}>
-              Reset the password
-            </Menu.Item>
+            {!user.sso && (
+              <Menu.Item leftSection={<IconKey size={14} />} onClick={() => onAction('reset')}>
+                Reset the password
+              </Menu.Item>
+            )}
             {!self && (
               <Menu.Item
                 color="red"

@@ -1,8 +1,18 @@
-import { Alert, Button, Card, Center, PasswordInput, Stack, TextInput } from '@mantine/core';
-import { Navigate, useNavigate } from '@tanstack/react-router';
+import {
+  Alert,
+  Button,
+  Card,
+  Center,
+  Divider,
+  PasswordInput,
+  Stack,
+  TextInput,
+} from '@mantine/core';
+import { IconKey } from '@tabler/icons-react';
+import { Navigate, useNavigate, useRouterState } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 
-import { useLogin, useMe } from '../api/queries';
+import { useLogin, useMe, useSettings } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
 import { PROJECT_TITLE } from '../project';
 
@@ -12,6 +22,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const settings = useSettings();
+  const search = useRouterState({ select: (s) => s.location.search as { error?: string } });
+  const sso = settings.data?.sso;
 
   if (me.data) {
     return <Navigate to="/" />;
@@ -29,6 +42,24 @@ export function LoginPage() {
     <Center>
       <Card withBorder w={380} padding="xl">
         <PageHeader title={`Sign in to ${PROJECT_TITLE}`} />
+        {search.error && (
+          <Alert color="red" mb="md">
+            {search.error}
+          </Alert>
+        )}
+        {sso && (
+          <>
+            <Button
+              component="a"
+              href="/api/v1/auth/oidc/login"
+              fullWidth
+              leftSection={<IconKey size={16} />}
+            >
+              Sign in with {sso.label}
+            </Button>
+            <Divider label="or with a local account" my="md" />
+          </>
+        )}
         <form onSubmit={submit}>
           <Stack>
             <TextInput
@@ -52,7 +83,7 @@ export function LoginPage() {
                   : login.error.message}
               </Alert>
             )}
-            <Button type="submit" loading={login.isPending}>
+            <Button type="submit" variant={sso ? 'default' : 'filled'} loading={login.isPending}>
               Sign in
             </Button>
           </Stack>
