@@ -98,6 +98,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every account. */
+        get: operations["list_users"];
+        put?: never;
+        /** Creates an account with a generated password, returned once. */
+        post: operations["create_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deletes an account with its progress and scores, and stops its instances. */
+        delete: operations["delete_user"];
+        options?: never;
+        head?: never;
+        /**
+         * Changes a user's display name, role or state. Admins cannot change their
+         *     own role or disable themselves, so there is always an admin left.
+         */
+        patch: operations["update_user"];
+        trace?: never;
+    };
+    "/api/v1/admin/users/{id}/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gives a user a new generated password, returned once, and ends their sessions. */
+        post: operations["reset_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -274,6 +330,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Changes the signed-in user's password and ends their other sessions. */
+        post: operations["change_password"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** How the platform is set up, for the web UI (no sign-in needed). */
+        get: operations["settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -356,6 +446,11 @@ export interface components {
             unrunnableReason?: string | null;
             version: string;
         };
+        ChangePassword: {
+            currentPassword: string;
+            /** @description At least 8 characters. */
+            newPassword: string;
+        };
         /**
          * @description Lifecycle phase of a check run.
          * @enum {string}
@@ -371,6 +466,19 @@ export interface components {
             newlySolved: string[];
             phase: components["schemas"]["CheckPhase"];
             results: components["schemas"]["TaskResultView"][];
+        };
+        CreateUser: {
+            /** @description Defaults to the username. */
+            displayName?: string | null;
+            /** @description admin, teacher or student. */
+            role: string;
+            /** @description Lowercase letters, digits, `.`, `_` and `-`, up to 64 characters. */
+            username: string;
+        };
+        /** @description A new account and its generated password, shown once. */
+        CreatedUser: {
+            password: string;
+            user: components["schemas"]["UserView"];
         };
         /** @description Body of every error response. */
         ErrorBody: {
@@ -479,6 +587,11 @@ export interface components {
             score: number;
             username: string;
         };
+        /**
+         * @description How an install is used (D12).
+         * @enum {string}
+         */
+        Mode: "solo" | "organization";
         /** @description A new catalog source. */
         NewCatalog: {
             /** @description Name of the source (a DNS label). */
@@ -486,6 +599,10 @@ export interface components {
             /** @description OCI reference of the catalog index, e.g. "ghcr.io/school/catalog:latest". */
             ref: string;
             trust: components["schemas"]["TrustView"];
+        };
+        /** @description A new generated password, shown once. */
+        NewPassword: {
+            password: string;
         };
         OpenTerminal: {
             /** @description Machine of one of the challenge's terminals. */
@@ -511,6 +628,10 @@ export interface components {
             memory: string;
             /** @description Runtimes of its machines (pod, vm...). */
             runtimes: string[];
+        };
+        /** @description How the platform is set up. */
+        Settings: {
+            mode: components["schemas"]["Mode"];
         };
         StartInstance: {
             /** @description Name of the challenge. */
@@ -548,6 +669,32 @@ export interface components {
             keyless?: components["schemas"]["KeylessView"][];
             /** @description PEM public keys (cosign or `brokelabs challenge sign --key`). */
             keys?: string[];
+        };
+        /** @description Fields to change; missing fields are kept. */
+        UpdateUser: {
+            /** @description A disabled user cannot sign in; their sessions and instances end. */
+            disabled?: boolean | null;
+            displayName?: string | null;
+            role?: string | null;
+        };
+        /** @description An account, as admins see it. */
+        UserView: {
+            /** Format: date-time */
+            createdAt: string;
+            disabled: boolean;
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            lastLoginAt?: string | null;
+            /** @description admin, teacher or student. */
+            role: string;
+            /**
+             * Format: int64
+             * @description Points of every solved task.
+             */
+            score: number;
+            username: string;
         };
         /** @description Version of the running api. */
         VersionInfo: {
@@ -798,6 +945,212 @@ export interface operations {
                 };
             };
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserView"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUser"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedUser"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUser"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    reset_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description User ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewPassword"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1173,6 +1526,62 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    change_password: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePassword"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
                 };
             };
         };

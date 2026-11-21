@@ -1,4 +1,5 @@
 import {
+  Anchor,
   AppShell,
   Badge,
   Button,
@@ -9,10 +10,16 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconBuildingStore, IconLogout, IconPackages, IconTargetArrow } from '@tabler/icons-react';
+import {
+  IconBuildingStore,
+  IconLogout,
+  IconPackages,
+  IconTargetArrow,
+  IconUsers,
+} from '@tabler/icons-react';
 import { Link, Navigate, Outlet, useRouterState } from '@tanstack/react-router';
 
-import { useEvents, useLogout, useMe, useVersion } from '../api/queries';
+import { useEvents, useIsOrganization, useLogout, useMe, useVersion } from '../api/queries';
 import { PROJECT_TITLE } from '../project';
 import { ADMIN_ROLE } from './AdminOnly';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
@@ -25,12 +32,16 @@ const adminNavigation = [
   { to: '/admin/catalogs', label: 'Catalog sources', icon: IconPackages },
 ] as const;
 
+/** Administration of an organization (hidden in solo mode). */
+const organizationNavigation = [{ to: '/admin/users', label: 'Users', icon: IconUsers }] as const;
+
 /** The frame of every page: header, navigation and content. Signed-out users only see the login page. */
 export function AppLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const me = useMe();
   const logout = useLogout();
   const version = useVersion();
+  const organization = useIsOrganization();
   const signedIn = !!me.data;
   useEvents(signedIn);
 
@@ -65,7 +76,9 @@ export function AppLayout() {
                 <Badge size="lg" variant="light">
                   {me.data.score} pts
                 </Badge>
-                <Text size="sm">{me.data.displayName}</Text>
+                <Anchor component={Link} to="/account" size="sm">
+                  {me.data.displayName}
+                </Anchor>
                 <Button
                   variant="subtle"
                   size="xs"
@@ -98,16 +111,18 @@ export function AppLayout() {
               <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="md" mb={4} px="sm">
                 Administration
               </Text>
-              {adminNavigation.map(({ to, label, icon: Icon }) => (
-                <NavLink
-                  key={to}
-                  component={Link}
-                  to={to}
-                  label={label}
-                  leftSection={<Icon size={18} stroke={1.5} />}
-                  active={pathname === to}
-                />
-              ))}
+              {[...adminNavigation, ...(organization ? organizationNavigation : [])].map(
+                ({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    component={Link}
+                    to={to}
+                    label={label}
+                    leftSection={<Icon size={18} stroke={1.5} />}
+                    active={pathname === to}
+                  />
+                ),
+              )}
             </>
           )}
         </AppShell.Section>

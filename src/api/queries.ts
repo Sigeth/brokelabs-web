@@ -380,3 +380,106 @@ export function useRemoveChallenge() {
     onSuccess: invalidate,
   });
 }
+
+// Settings and accounts.
+
+export type Settings = components['schemas']['Settings'];
+export type UserView = components['schemas']['UserView'];
+export type NewUser = components['schemas']['CreateUser'];
+export type UserChange = components['schemas']['UpdateUser'];
+
+const userKeys = {
+  settings: ['settings'],
+  users: ['admin', 'users'],
+};
+
+/** How the platform is set up (solo or organization). Readable signed out. */
+export function useSettings() {
+  return useQuery({
+    queryKey: userKeys.settings,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/settings');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** True when the install is used by several people (not solo mode). */
+export function useIsOrganization(): boolean {
+  return useSettings().data?.mode === 'organization';
+}
+
+export function useUsers() {
+  return useQuery({
+    queryKey: userKeys.users,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/admin/users');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** Creates an account; the result holds its generated password, shown once. */
+export function useCreateUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: NewUser) => {
+      const { data, error, response } = await api.POST('/api/v1/admin/users', { body });
+      return data ?? fail(response, error);
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.users }),
+  });
+}
+
+export function useUpdateUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, change }: { id: string; change: UserChange }) => {
+      const { data, error, response } = await api.PATCH('/api/v1/admin/users/{id}', {
+        params: { path: { id } },
+        body: change,
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.users }),
+  });
+}
+
+export function useDeleteUser() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error, response } = await api.DELETE('/api/v1/admin/users/{id}', {
+        params: { path: { id } },
+      });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: userKeys.users }),
+  });
+}
+
+/** Gives a user a new generated password, returned once. */
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error, response } = await api.POST('/api/v1/admin/users/{id}/password', {
+        params: { path: { id } },
+      });
+      return (data ?? fail(response, error)).password;
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: async (body: { currentPassword: string; newPassword: string }) => {
+      const { error, response } = await api.POST('/api/v1/me/password', { body });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+  });
+}
