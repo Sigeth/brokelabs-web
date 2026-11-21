@@ -14,6 +14,7 @@ import { type FormEvent, useState } from 'react';
 
 import { useLogin, useMe, useSettings } from '../api/queries';
 import { PageHeader } from '../components/PageHeader';
+import { safeNext, ssoLoginUrl } from '../next';
 import { PROJECT_TITLE } from '../project';
 
 export function LoginPage() {
@@ -23,18 +24,21 @@ export function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const settings = useSettings();
-  const search = useRouterState({ select: (s) => s.location.search as { error?: string } });
+  const search = useRouterState({
+    select: (s) => s.location.search as { error?: string; next?: string },
+  });
+  const next = safeNext(search.next);
   const sso = settings.data?.sso;
 
   if (me.data) {
-    return <Navigate to="/" />;
+    return <Navigate to={next} />;
   }
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     login.mutate(
       { username: username.trim(), password },
-      { onSuccess: () => void navigate({ to: '/' }) },
+      { onSuccess: () => void navigate({ to: next }) },
     );
   };
 
@@ -51,7 +55,7 @@ export function LoginPage() {
           <>
             <Button
               component="a"
-              href="/api/v1/auth/oidc/login"
+              href={ssoLoginUrl(next)}
               fullWidth
               leftSection={<IconKey size={16} />}
             >

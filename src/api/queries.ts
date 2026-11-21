@@ -483,3 +483,224 @@ export function useChangePassword() {
     },
   });
 }
+
+// Classrooms (organization mode).
+
+export type StudentClassroom = components['schemas']['StudentClassroom'];
+export type StudentAssignment = components['schemas']['StudentAssignment'];
+export type ClassroomView = components['schemas']['ClassroomView'];
+export type ClassroomDetail = components['schemas']['ClassroomDetail'];
+export type ClassroomChange = components['schemas']['ClassroomChange'];
+export type AssignmentView = components['schemas']['AssignmentView'];
+export type MemberView = components['schemas']['MemberView'];
+
+const classroomKeys = {
+  mine: ['classrooms'],
+  invite: (code: string) => ['invites', code],
+  teaching: ['teach', 'classrooms'],
+  classroom: (id: string) => ['teach', 'classrooms', id],
+};
+
+/** How often classroom pages refresh (members join, students solve tasks). */
+const CLASSROOM_REFRESH_MS = 10_000;
+
+/** Classrooms the user joined, with their assignments and progress. */
+export function useMyClassrooms(enabled = true) {
+  return useQuery({
+    queryKey: classroomKeys.mine,
+    enabled,
+    refetchInterval: CLASSROOM_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/classrooms');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** What an invite link leads to (works signed out). */
+export function useInvite(code: string) {
+  return useQuery({
+    queryKey: classroomKeys.invite(code),
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/invites/{code}', {
+        params: { path: { code } },
+      });
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+export function useJoin() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async (code: string) => {
+      const { data, error, response } = await api.POST('/api/v1/invites/{code}/join', {
+        params: { path: { code } },
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: () => client.invalidateQueries({ queryKey: classroomKeys.mine }),
+  });
+}
+
+/** Creates a student account through an invite link and signs it in. */
+export function useSignUp() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      code,
+      ...body
+    }: {
+      code: string;
+      displayName: string;
+      username: string;
+      password: string;
+    }) => {
+      const { data, error, response } = await api.POST('/api/v1/invites/{code}/signup', {
+        params: { path: { code } },
+        body,
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: (me) => {
+      client.clear();
+      client.setQueryData(keys.me, me);
+    },
+  });
+}
+
+/** Classrooms the teacher manages (every classroom for admins). */
+export function useTeaching() {
+  return useQuery({
+    queryKey: classroomKeys.teaching,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/teach/classrooms');
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+export function useClassroom(id: string) {
+  return useQuery({
+    queryKey: classroomKeys.classroom(id),
+    refetchInterval: CLASSROOM_REFRESH_MS,
+    queryFn: async () => {
+      const { data, error, response } = await api.GET('/api/v1/teach/classrooms/{id}', {
+        params: { path: { id } },
+      });
+      return data ?? fail(response, error);
+    },
+  });
+}
+
+/** Refreshes the teacher's classroom pages after a change. */
+function useInvalidateTeaching() {
+  const client = useQueryClient();
+  return () => client.invalidateQueries({ queryKey: ['teach'] });
+}
+
+export function useCreateClassroom() {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async (body: { name: string; description?: string | null }) => {
+      const { data, error, response } = await api.POST('/api/v1/teach/classrooms', { body });
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useUpdateClassroom(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async (change: ClassroomChange) => {
+      const { data, error, response } = await api.PATCH('/api/v1/teach/classrooms/{id}', {
+        params: { path: { id } },
+        body: change,
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRotateInvite(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error, response } = await api.POST('/api/v1/teach/classrooms/{id}/invite', {
+        params: { path: { id } },
+      });
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteClassroom(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async () => {
+      const { error, response } = await api.DELETE('/api/v1/teach/classrooms/{id}', {
+        params: { path: { id } },
+      });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoveMember(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async (user: string) => {
+      const { error, response } = await api.DELETE('/api/v1/teach/classrooms/{id}/members/{user}', {
+        params: { path: { id, user } },
+      });
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function usePutAssignment(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async ({
+      challenge,
+      opensAt,
+      dueAt,
+    }: {
+      challenge: string;
+      opensAt: string | null;
+      dueAt: string | null;
+    }) => {
+      const { data, error, response } = await api.PUT(
+        '/api/v1/teach/classrooms/{id}/assignments/{challenge}',
+        { params: { path: { id, challenge } }, body: { opensAt, dueAt } },
+      );
+      return data ?? fail(response, error);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeleteAssignment(id: string) {
+  const invalidate = useInvalidateTeaching();
+  return useMutation({
+    mutationFn: async (challenge: string) => {
+      const { error, response } = await api.DELETE(
+        '/api/v1/teach/classrooms/{id}/assignments/{challenge}',
+        { params: { path: { id, challenge } } },
+      );
+      if (!response.ok) {
+        fail(response, error);
+      }
+    },
+    onSuccess: invalidate,
+  });
+}

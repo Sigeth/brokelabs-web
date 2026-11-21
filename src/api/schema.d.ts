@@ -259,6 +259,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Classrooms the user joined, with their assignments and the user's progress. */
+        get: operations["my_classrooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/events": {
         parameters: {
             query?: never;
@@ -350,6 +367,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invites/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What an invite link leads to. No sign-in needed. */
+        get: operations["get_invite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{code}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Joins the classroom of an invite link. */
+        post: operations["join"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites/{code}/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Creates a student account through an invite link, joins the classroom
+         *     and signs in.
+         */
+        post: operations["sign_up"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -401,6 +472,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/teach/classrooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Classrooms the teacher manages (every classroom for admins). */
+        get: operations["list_teaching"];
+        put?: never;
+        /** Creates a classroom owned by the teacher, with its invite link on. */
+        post: operations["create_classroom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A classroom with its members and assignments. */
+        get: operations["get_teaching"];
+        put?: never;
+        post?: never;
+        /**
+         * Deletes a classroom with its memberships and assignments. Accounts and
+         *     scores are kept.
+         */
+        delete: operations["delete_classroom"];
+        options?: never;
+        head?: never;
+        /**
+         * Renames a classroom, turns its invite link on or off, or (admins) gives
+         *     it to another teacher.
+         */
+        patch: operations["update_classroom"];
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/assignments/{challenge}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Assigns an installed challenge to a classroom, or changes its dates. */
+        put: operations["put_assignment"];
+        post?: never;
+        /** Removes an assignment (solves are kept). */
+        delete: operations["delete_assignment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Replaces the invite code: the old link stops working. */
+        post: operations["rotate_invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/teach/classrooms/{id}/members/{user}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes a member from a classroom (their account and scores are kept). */
+        delete: operations["remove_member"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/version": {
         parameters: {
             query?: never;
@@ -422,6 +588,23 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description Dates of an assignment; both optional. */
+        AssignmentDates: {
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** Format: date-time */
+            opensAt?: string | null;
+        };
+        /** @description A challenge assigned to a classroom. */
+        AssignmentView: {
+            challenge: string;
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** Format: date-time */
+            opensAt?: string | null;
+            /** @description The challenge's title, when it is still installed. */
+            title?: string | null;
+        };
         /** @description A catalog source and its last sync. */
         CatalogView: {
             /** @description RFC 3339 time of the last successful sync. */
@@ -504,6 +687,43 @@ export interface components {
             phase: components["schemas"]["CheckPhase"];
             results: components["schemas"]["TaskResultView"][];
         };
+        /** @description Fields to change; missing fields are kept. */
+        ClassroomChange: {
+            description?: string | null;
+            inviteEnabled?: boolean | null;
+            name?: string | null;
+            /**
+             * Format: uuid
+             * @description New owner, a teacher or an admin (admins only).
+             */
+            ownerId?: string | null;
+        };
+        /** @description A classroom with its members and assignments, for its teacher. */
+        ClassroomDetail: {
+            assignments: components["schemas"]["AssignmentView"][];
+            classroom: components["schemas"]["ClassroomView"];
+            members: components["schemas"]["MemberView"][];
+        };
+        /** @description A classroom, as its teacher sees it. */
+        ClassroomView: {
+            /** Format: int64 */
+            assignments: number;
+            /** Format: date-time */
+            createdAt: string;
+            description: string;
+            /** Format: uuid */
+            id: string;
+            /** @description `ABCD-EFGH`: the invite link is `/join/<code>`. */
+            inviteCode: string;
+            /** @description When false, the invite link does not work (members stay). */
+            inviteEnabled: boolean;
+            /** Format: int64 */
+            members: number;
+            name: string;
+            /** Format: uuid */
+            ownerId: string;
+            ownerName: string;
+        };
         CreateUser: {
             /** @description Defaults to the username. */
             displayName?: string | null;
@@ -585,6 +805,18 @@ export interface components {
             phase: components["schemas"]["InstancePhase"];
             terminals: components["schemas"]["TerminalView"][];
         };
+        /** @description What an invite link leads to (no sign-in needed). */
+        InviteView: {
+            classroom: string;
+            teacher: string;
+        };
+        /** @description The result of joining through an invite link. */
+        Joined: {
+            /** Format: uuid */
+            classroomId: string;
+            /** @description False when the user was a member already. */
+            joined: boolean;
+        };
         /** @description A Sigstore keyless identity. */
         KeylessView: {
             issuer: string;
@@ -626,6 +858,17 @@ export interface components {
             sso: boolean;
             username: string;
         };
+        /** @description A member of a classroom. */
+        MemberView: {
+            displayName: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            joinedAt: string;
+            /** Format: date-time */
+            lastLoginAt?: string | null;
+            username: string;
+        };
         /**
          * @description How an install is used (D12).
          * @enum {string}
@@ -638,6 +881,10 @@ export interface components {
             /** @description OCI reference of the catalog index, e.g. "ghcr.io/school/catalog:latest". */
             ref: string;
             trust: components["schemas"]["TrustView"];
+        };
+        NewClassroom: {
+            description?: string | null;
+            name: string;
         };
         /** @description A new generated password, shown once. */
         NewPassword: {
@@ -673,6 +920,12 @@ export interface components {
             mode: components["schemas"]["Mode"];
             sso?: components["schemas"]["SsoSettings"] | null;
         };
+        SignUp: {
+            displayName: string;
+            /** @description At least 8 characters. */
+            password: string;
+            username: string;
+        };
         /** @description The single sign-on provider. */
         SsoSettings: {
             /** @description Text of the sign-in button. */
@@ -686,6 +939,28 @@ export interface components {
         StartInstance: {
             /** @description Name of the challenge. */
             challenge: string;
+        };
+        /** @description An assignment, as a student sees it, with their progress. */
+        StudentAssignment: {
+            challenge: string;
+            /** @description Every task is solved. */
+            done: boolean;
+            /** Format: date-time */
+            dueAt?: string | null;
+            /** @description A task was solved after the deadline (it still counts, D58). */
+            late: boolean;
+            /** Format: date-time */
+            opensAt?: string | null;
+            summary?: components["schemas"]["ChallengeSummary"] | null;
+        };
+        /** @description A classroom the student joined. */
+        StudentClassroom: {
+            assignments: components["schemas"]["StudentAssignment"][];
+            description: string;
+            /** Format: uuid */
+            id: string;
+            name: string;
+            teacher: string;
         };
         /** @description Result of checking one task. */
         TaskResultView: {
@@ -1369,6 +1644,25 @@ export interface operations {
             };
         };
     };
+    my_classrooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentClassroom"][];
+                };
+            };
+        };
+    };
     events: {
         parameters: {
             query?: never;
@@ -1615,6 +1909,116 @@ export interface operations {
             };
         };
     };
+    get_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Invite code */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InviteView"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    join: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Invite code */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Joined"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    sign_up: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Invite code */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignUp"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     me: {
         parameters: {
             query?: never;
@@ -1694,6 +2098,314 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Settings"];
+                };
+            };
+        };
+    };
+    list_teaching: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomView"][];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    create_classroom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewClassroom"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get_teaching: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_classroom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_classroom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassroomChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    put_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+                /** @description Challenge name */
+                challenge: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignmentDates"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignmentView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_assignment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+                /** @description Challenge name */
+                challenge: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rotate_invite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassroomView"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_member: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Classroom ID */
+                id: string;
+                /** @description User ID */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
         };

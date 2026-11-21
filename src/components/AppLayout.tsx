@@ -12,8 +12,10 @@ import {
 } from '@mantine/core';
 import {
   IconBuildingStore,
+  IconChalkboard,
   IconLogout,
   IconPackages,
+  IconSchool,
   IconTargetArrow,
   IconUsers,
 } from '@tabler/icons-react';
@@ -23,8 +25,13 @@ import { useEvents, useIsOrganization, useLogout, useMe, useVersion } from '../a
 import { PROJECT_TITLE } from '../project';
 import { ADMIN_ROLE } from './AdminOnly';
 import { ColorSchemeToggle } from './ColorSchemeToggle';
+import { canTeach } from './TeacherOnly';
 
 const navigation = [{ to: '/', label: 'Challenges', icon: IconTargetArrow }] as const;
+
+/** Classrooms (hidden in solo mode): everyone sees theirs, teachers manage theirs. */
+const classNavigation = [{ to: '/classes', label: 'My classes', icon: IconSchool }] as const;
+const teachNavigation = [{ to: '/teach', label: 'Classrooms', icon: IconChalkboard }] as const;
 
 /** Administration, shown to admins only. */
 const adminNavigation = [
@@ -46,6 +53,8 @@ export function AppLayout() {
   useEvents(signedIn);
 
   const onLogin = pathname === '/login';
+  // Invite links work signed out: they sign the visitor up (D55).
+  const open = onLogin || pathname.startsWith('/join/');
   let content = <Outlet />;
   if (me.isPending) {
     content = (
@@ -53,8 +62,8 @@ export function AppLayout() {
         <Loader />
       </Center>
     );
-  } else if (!signedIn && !onLogin) {
-    content = <Navigate to="/login" />;
+  } else if (!signedIn && !open) {
+    content = <Navigate to="/login" search={pathname === '/' ? {} : { next: pathname }} />;
   }
 
   return (
@@ -106,6 +115,19 @@ export function AppLayout() {
               active={pathname === to || pathname.startsWith('/challenges/')}
             />
           ))}
+          {organization &&
+            [...classNavigation, ...(canTeach(me.data?.role) ? teachNavigation : [])].map(
+              ({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  component={Link}
+                  to={to}
+                  label={label}
+                  leftSection={<Icon size={18} stroke={1.5} />}
+                  active={pathname === to || pathname.startsWith(`${to}/`)}
+                />
+              ),
+            )}
           {me.data?.role === ADMIN_ROLE && (
             <>
               <Text size="xs" c="dimmed" tt="uppercase" fw={600} mt="md" mb={4} px="sm">
